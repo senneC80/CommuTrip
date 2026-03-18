@@ -46,6 +46,7 @@ A user is exactly one role — either a traveller or a provider. The `role` colu
 - Relations: always define both sides of the relation
 - All tables have `id` as primary key (autoincrement BigInt), except role tables (`travellers`, `providers`) which use `userId` as PK referencing `users.id`
 - Timestamps: `createdAt` and `updatedAt` on all main tables
+- **Prisma 7 driver adapter**: Prisma 7 removed the old "library" engine — `PrismaClient` must be constructed with a `PrismaPg` adapter (from `@prisma/adapter-pg` + `pg`). The singleton in `src/lib/prisma.ts` handles this. Do not instantiate `PrismaClient` without an adapter or it will throw `PrismaClientConstructorValidationError` at runtime.
 
 ## Deferred Tables (Iteration 2+)
 
