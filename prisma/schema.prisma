@@ -1,0 +1,267 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// USER HIERARCHY
+// Ontology: «roleMixin» User → Traveller / Local Provider
+// One table for superclass + one per role subclass
+// ============================================================
+
+model User {
+  id                BigInt    @id @default(autoincrement())
+  email             String    @unique @db.VarChar(255)
+  passwordHash      String    @db.VarChar(255)
+  firstName         String?   @db.VarChar(100)
+  lastName          String?   @db.VarChar(100)
+  phoneNumber       String?   @db.VarChar(50)
+  profilePictureUrl String?   @db.VarChar(500)
+  role              String    @db.VarChar(20) // 'traveller' | 'provider'
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  traveller         Traveller?
+  provider          Provider?
+
+  @@map("users")
+}
+
+// Ontology: «roleMixin» Traveller
+model Traveller {
+  userId    BigInt   @id
+  bio       String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  trips                 Trip[]
+  bookings              Booking[]
+  travellerInterestTags TravellerInterestTag[]
+
+  @@map("travellers")
+}
+
+// Ontology: «roleMixin» Local Provider
+// Community Membership relator simplified to FK
+model Provider {
+  userId            BigInt    @id
+  displayName       String?   @db.VarChar(255)
+  communityId       BigInt?
+  joinedCommunityAt DateTime?
+  createdAt         DateTime  @default(now())
+
+  user              User      @relation(fields: [userId], references: [id])
+  community         Community? @relation(fields: [communityId], references: [id])
+
+  activityListings  ActivityListing[]
+
+  @@map("providers")
+}
+
+
+// ============================================================
+// COMMUNITIES
+// Ontology: «kind» Community — seeded for iteration 1
+// ============================================================
+
+model Community {
+  id             BigInt    @id @default(autoincrement())
+  name           String    @db.VarChar(255)
+  description    String?
+  culturalContext String?
+  city           String?   @db.VarChar(100)
+  country        String?   @db.VarChar(100)
+  latitude       Decimal?  @db.Decimal(9, 6)
+  longitude      Decimal?  @db.Decimal(9, 6)
+  imageUrl       String?   @db.VarChar(500)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  providers      Provider[]
+
+  @@map("communities")
+}
+
+
+// ============================================================
+// ACTIVITY LISTINGS
+// Ontology: «kind» Activity Listing
+// Price fields from «mode» Offered Price flattened here
+// ============================================================
+
+model ActivityListing {
+  id             BigInt   @id @default(autoincrement())
+  providerId     BigInt
+  title          String   @db.VarChar(255)
+  description    String
+  pictureUrl     String?  @db.VarChar(500)
+  category       String?  @db.VarChar(100)
+  city           String?  @db.VarChar(100)
+  country        String?  @db.VarChar(100)
+  latitude       Decimal? @db.Decimal(9, 6)
+  longitude      Decimal? @db.Decimal(9, 6)
+  pricePerPerson Decimal  @db.Decimal(10, 2)
+  currency       String   @default("EUR") @db.VarChar(10)
+  capacity       Int
+  isRecurring    Boolean  @default(false)
+  status         String   @default("draft") @db.VarChar(30) // draft | active | inactive
+  averageScore   Decimal? @default(0) @db.Decimal(3, 2)
+  reviewCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  provider       Provider @relation(fields: [providerId], references: [userId])
+
+  activitySlots        ActivitySlot[]
+  bookings             Booking[]
+  listingInterestTags  ListingInterestTag[]
+
+  @@map("activity_listings")
+}
+
+
+// ============================================================
+// ACTIVITY SLOTS
+// Ontology: «phase» Available Time Slot / «phase» Booked Time Slot
+// Phases collapsed into single table with status column
+// ============================================================
+
+model ActivitySlot {
+  id                BigInt   @id @default(autoincrement())
+  listingId         BigInt
+  slotDate          DateTime @db.Date
+  startTime         DateTime @db.Time()
+  endTime           DateTime? @db.Time()
+  capacity          Int
+  remainingCapacity Int
+  status            String   @default("available") @db.VarChar(30) // available | full | cancelled
+
+  listing           ActivityListing @relation(fields: [listingId], references: [id])
+  bookings          Booking[]
+
+  @@map("activity_slots")
+}
+
+
+// ============================================================
+// TRIPS
+// Ontology: «kind» Trip
+// ============================================================
+
+model Trip {
+  id          BigInt   @id @default(autoincrement())
+  travellerId BigInt
+  title       String?  @db.VarChar(255)
+  status      String   @default("draft") @db.VarChar(30) // draft | active | completed | cancelled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  traveller   Traveller @relation(fields: [travellerId], references: [userId])
+
+  tripLocations TripLocation[]
+  bookings      Booking[]
+
+  @@map("trips")
+}
+
+
+// ============================================================
+// TRIP LOCATIONS
+// Ontology: «kind» Trip Location — «componentOf» Trip
+// ============================================================
+
+model TripLocation {
+  id            BigInt   @id @default(autoincrement())
+  tripId        BigInt
+  city          String?  @db.VarChar(100)
+  country       String?  @db.VarChar(100)
+  latitude      Decimal  @db.Decimal(9, 6)
+  longitude     Decimal  @db.Decimal(9, 6)
+  arrivalDate   DateTime @db.Date
+  departureDate DateTime @db.Date
+  sequenceNo    Int
+
+  trip          Trip @relation(fields: [tripId], references: [id])
+
+  @@map("trip_locations")
+}
+
+
+// ============================================================
+// INTEREST TAGS
+// Ontology: «kind» Interest Tag
+// Many-to-many with Traveller and ActivityListing
+// ============================================================
+
+model InterestTag {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  travellerInterestTags TravellerInterestTag[]
+  listingInterestTags   ListingInterestTag[]
+
+  @@map("interest_tags")
+}
+
+// Junction: Traveller ↔ InterestTag
+model TravellerInterestTag {
+  travellerId BigInt
+  tagId       BigInt
+
+  traveller   Traveller   @relation(fields: [travellerId], references: [userId])
+  tag         InterestTag @relation(fields: [tagId], references: [id])
+
+  @@id([travellerId, tagId])
+  @@map("traveller_interest_tags")
+}
+
+// Junction: ActivityListing ↔ InterestTag
+model ListingInterestTag {
+  listingId BigInt
+  tagId     BigInt
+
+  listing   ActivityListing @relation(fields: [listingId], references: [id])
+  tag       InterestTag     @relation(fields: [tagId], references: [id])
+
+  @@id([listingId, tagId])
+  @@map("listing_interest_tags")
+}
+
+
+// ============================================================
+// BOOKINGS
+// Ontology: «relator» Booking — mediates Traveller ↔ ActivityListing (via Trip)
+// Commission Fee «quality» flattened here
+// Price fields snapshot at booking time («historicalDependence»)
+// ============================================================
+
+model Booking {
+  id               BigInt   @id @default(autoincrement())
+  tripId           BigInt
+  travellerId      BigInt
+  listingId        BigInt
+  slotId           BigInt?
+  numberOfPersons  Int
+  pricePerPerson   Decimal  @db.Decimal(10, 2) // snapshot at booking time
+  commissionRate   Decimal  @db.Decimal(5, 4)
+  commissionAmount Decimal  @db.Decimal(10, 2)
+  totalPrice       Decimal  @db.Decimal(10, 2)
+  currency         String   @default("EUR") @db.VarChar(10)
+  status           String   @default("confirmed") @db.VarChar(30) // confirmed | cancelled | completed
+  bookedAt         DateTime @default(now())
+
+  trip     Trip            @relation(fields: [tripId], references: [id])
+  traveller Traveller      @relation(fields: [travellerId], references: [userId])
+  listing  ActivityListing @relation(fields: [listingId], references: [id])
+  slot     ActivitySlot?   @relation(fields: [slotId], references: [id])
+
+  @@map("bookings")
+}
