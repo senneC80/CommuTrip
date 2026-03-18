@@ -13,11 +13,11 @@ This schema is derived from the CommuTrip OntoUML ontology using ontology-driven
 ## Tables (Iteration 1)
 
 ### User hierarchy
-- `users` — shared identity. From ontology: `«roleMixin» User`
-- `travellers` — traveller role (FK to users). From ontology: `«roleMixin» Traveller`
-- `providers` — provider role (FK to users, FK to communities). From ontology: `«roleMixin» Local Provider` + simplified `«relator» Community Membership`
+- `users` — shared identity, includes `role` column (`traveller` or `provider`). From ontology: `«roleMixin» User`
+- `travellers` — traveller-specific data (FK to users). From ontology: `«roleMixin» Traveller`
+- `providers` — provider-specific data (FK to users, FK to communities). From ontology: `«roleMixin» Local Provider` + simplified `«relator» Community Membership`
 
-A user can have both a traveller and a provider record. No `user_type` column — role determined by existence of role record.
+A user is exactly one role — either a traveller or a provider. The `role` column on `users` enforces this, and the user has a corresponding record in either `travellers` or `providers` (never both). **MVP simplification:** the ontology models Traveller and Local Provider as `«roleMixin»` (allowing a user to play both roles). This was restricted for MVP to simplify registration, UI navigation, and session handling. Can be relaxed in a future iteration if needed.
 
 ### Communities
 - `communities` — seeded for iteration 1. From ontology: `«kind» Community`
