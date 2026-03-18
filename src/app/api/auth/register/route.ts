@@ -11,6 +11,7 @@ interface RegisterBody {
   firstName?: string;
   lastName?: string;
   displayName?: string;
+  communityId?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -22,7 +23,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { email, password, role, firstName, lastName, displayName } = body;
+  const { email, password, role, firstName, lastName, displayName, communityId } =
+    body;
 
   // ── Validation ────────────────────────────────────────────────────────────
   if (!email || typeof email !== "string" || !email.includes("@")) {
@@ -78,6 +80,8 @@ export async function POST(request: NextRequest) {
           data: {
             userId: created.id,
             displayName: displayName ?? null,
+            communityId: communityId ? BigInt(communityId) : null,
+            joinedCommunityAt: communityId ? new Date() : null,
           },
         });
       }
