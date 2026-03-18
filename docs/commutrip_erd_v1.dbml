@@ -1,0 +1,200 @@
+// ============================================
+// CommuTrip ERD — Iteration 1
+// Derived from CommuTrip OntoUML ontology
+// using ontology-driven MVP transformation rules
+// ============================================
+
+// ----- USER HIERARCHY -----
+// Ontology: «roleMixin» User → Logged In User → Traveller / Local Provider
+// Transformation: One table for superclass, one per role subclass
+// No user_type column — roles determined by existence of traveller/provider record
+
+Table users {
+  id bigint [pk, increment]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  first_name varchar(100)
+  last_name varchar(100)
+  phone_number varchar(50)
+  profile_picture_url varchar(500)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+// Ontology: «roleMixin» Traveller (role a Logged In User can play)
+Table travellers {
+  user_id bigint [pk, ref: > users.id]
+  bio text
+  created_at timestamp [not null, default: `now()`]
+}
+
+// Ontology: «roleMixin» Local Provider (role a Logged In User can play)
+// Community Membership relator simplified to FK for iteration 1
+Table providers {
+  user_id bigint [pk, ref: > users.id]
+  display_name varchar(255)
+  community_id bigint [ref: > communities.id, note: 'Simplified from «relator» Community Membership']
+  joined_community_at timestamp
+  created_at timestamp [not null, default: `now()`]
+}
+
+
+// ----- COMMUNITIES -----
+// Ontology: «kind» Community — communityName, description, impactData, location
+// Seeded for iteration 1 (no creation/join flow yet)
+
+Table communities {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  description text
+  cultural_context text
+  city varchar(100)
+  country varchar(100)
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  image_url varchar(500)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+
+// ----- ACTIVITY LISTINGS -----
+// Ontology: «kind» Activity Listing — core marketplace object
+// Attributes from ontology: name, description, picture, status, title,
+// pricePerPerson, currency, capacity, isRecurring, numberOfReviews,
+// averageScore, latitude, longitude, country, city
+
+Table activity_listings {
+  id bigint [pk, increment]
+  provider_id bigint [not null, ref: > providers.user_id]
+  title varchar(255) [not null]
+  description text [not null]
+  picture_url varchar(500)
+  category varchar(100)
+  city varchar(100)
+  country varchar(100)
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  price_per_person decimal(10,2) [not null]
+  currency varchar(10) [not null, default: 'EUR']
+  capacity int [not null]
+  is_recurring boolean [not null, default: false]
+  status varchar(30) [not null, default: 'draft', note: 'draft, active, inactive']
+  average_score decimal(3,2) [default: 0, note: 'Populated when reviews added in iteration 2']
+  review_count int [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+
+// ----- ACTIVITY SLOTS -----
+// Ontology: «phase» Available Time Slot / «phase» Booked Time Slot
+// Transformation: Phases of same entity → single table with status column
+
+Table activity_slots {
+  id bigint [pk, increment]
+  listing_id bigint [not null, ref: > activity_listings.id]
+  slot_date date [not null]
+  start_time time [not null]
+  end_time time
+  capacity int [not null]
+  remaining_capacity int [not null]
+  status varchar(30) [not null, default: 'available', note: 'available, full, cancelled']
+}
+
+
+// ----- TRIPS -----
+// Ontology: «kind» Trip — tripID, status, createdAt, destinationName
+
+Table trips {
+  id bigint [pk, increment]
+  traveller_id bigint [not null, ref: > travellers.user_id]
+  title varchar(255)
+  status varchar(30) [not null, default: 'draft', note: 'draft, active, completed, cancelled']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+
+// ----- TRIP LOCATIONS -----
+// Ontology: «kind» Trip Location — «componentOf» Trip
+// latitude, longitude, country, city, arrivalDate, departureDate
+
+Table trip_locations {
+  id bigint [pk, increment]
+  trip_id bigint [not null, ref: > trips.id]
+  city varchar(100)
+  country varchar(100)
+  latitude decimal(9,6) [not null]
+  longitude decimal(9,6) [not null]
+  arrival_date date [not null]
+  departure_date date [not null]
+  sequence_no int [not null, note: 'Order of locations in itinerary']
+}
+
+
+// ----- INTEREST TAGS -----
+// Ontology: «kind» Interest Tag — tagID, tagName
+// Many-to-many with both Traveller and Activity Listing
+
+Table interest_tags {
+  id bigint [pk, increment]
+  name varchar(100) [not null, unique]
+}
+
+// Ontology: Traveller "has interest" Interest Tag (many-to-many)
+Table traveller_interest_tags {
+  traveller_id bigint [not null, ref: > travellers.user_id]
+  tag_id bigint [not null, ref: > interest_tags.id]
+
+  indexes {
+    (traveller_id, tag_id) [pk]
+  }
+}
+
+// Activity Listing tagged with Interest Tag (many-to-many)
+Table listing_interest_tags {
+  listing_id bigint [not null, ref: > activity_listings.id]
+  tag_id bigint [not null, ref: > interest_tags.id]
+
+  indexes {
+    (listing_id, tag_id) [pk]
+  }
+}
+
+
+// ----- BOOKINGS -----
+// Ontology: «relator» Booking — personsBooked, numberOfPersons, totalPrice, status, bookedAt
+// Mediates between Traveller and Activity Listing (via Trip)
+// «quality» Commission Fee (rateMin, rateMax) → flattened to attributes here
+// Price fields snapshot at booking time (ontology: «historicalDependence» after booking)
+
+Table bookings {
+  id bigint [pk, increment]
+  trip_id bigint [not null, ref: > trips.id]
+  traveller_id bigint [not null, ref: > travellers.user_id]
+  listing_id bigint [not null, ref: > activity_listings.id]
+  slot_id bigint [ref: > activity_slots.id]
+  number_of_persons int [not null]
+  price_per_person decimal(10,2) [not null, note: 'Snapshot at booking time']
+  commission_rate decimal(5,4) [not null, note: 'From «quality» Commission Fee']
+  commission_amount decimal(10,2) [not null]
+  total_price decimal(10,2) [not null]
+  currency varchar(10) [not null, default: 'EUR']
+  status varchar(30) [not null, default: 'confirmed', note: 'confirmed, cancelled, completed']
+  booked_at timestamp [not null, default: `now()`]
+}
+
+
+// ============================================
+// DEFERRED TO ITERATION 2+
+// (Ontology classes exist but not yet in scope)
+// ============================================
+// - payments         (ontology: External Payment + Payment Provider)
+// - reviews          (ontology: «relator» Review + Review Creation event)
+// - conversations    (ontology: Message system)
+// - messages
+// - community_join_requests  (ontology: Community Join Request event)
+// - community_impact_metrics (ontology: impactData on Community)
+// - provider_verifications
+// - recommendations  (ontology: «relator» Recommendation — implemented as query for MVP)
