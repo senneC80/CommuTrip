@@ -8,8 +8,13 @@ export default function Navbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
 
-  // Don't render navbar on auth page or provider dashboard (sidebar replaces it)
-  if (pathname === "/auth" || pathname.startsWith("/dashboard")) return null;
+  // Don't render navbar on auth page or provider pages (sidebar replaces it)
+  if (
+    pathname === "/auth" ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/listings/create")
+  )
+    return null;
 
   return (
     <nav className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
