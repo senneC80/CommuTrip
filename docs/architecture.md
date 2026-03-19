@@ -52,8 +52,8 @@ For iteration 1, communities are seeded (not created by users). Each provider ha
 
 ## Folder Conventions
 
-- **Pages** (`src/app/[route]/page.tsx`): server components by default, fetch data via Prisma
-- **Client components** (`"use client"` directive): forms, interactive elements, anything with useState/useEffect
+- **Pages** (`src/app/[route]/page.tsx`): server components by default, fetch data via Prisma directly (no API call needed for read-only display pages)
+- **Client components** (`"use client"` directive): forms, interactive elements, anything with useState/useEffect/useSession
 - **API routes** (`src/app/api/[route]/route.ts`): handle POST/PUT/DELETE, return JSON
 - **Components** (`src/components/`): reusable UI components, named descriptively (e.g., `ActivityCard.tsx`, `TripForm.tsx`)
 - **Lib** (`src/lib/`): shared utilities — `prisma.ts` (singleton client), `auth.ts` (NextAuth config), helper functions

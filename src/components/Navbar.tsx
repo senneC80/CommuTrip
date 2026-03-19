@@ -12,7 +12,8 @@ export default function Navbar() {
   if (
     pathname === "/auth" ||
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/listings/create")
+    pathname.startsWith("/listings/create") ||
+    pathname.startsWith("/trips")
   )
     return null;
 

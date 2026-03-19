@@ -11,17 +11,21 @@ Next.js 14+ (App Router, TypeScript), PostgreSQL, Prisma ORM, NextAuth.js (crede
 ```
 src/
   app/                    # Next.js App Router (pages + API routes)
-    (auth)/               # Auth pages (login, register)
+    (auth)/               # Auth pages — combined /auth page (sign up + log in)
+    dashboard/            # Provider dashboard
     trips/                # Trip pages (list, create, detail)
     listings/             # Activity listing pages (browse, create, detail)
     communities/          # Community pages (detail)
     bookings/             # Booking pages
     api/                  # Backend API routes
-      auth/               # NextAuth endpoints
+      auth/               # NextAuth endpoints + POST /api/auth/register
+      communities/        # GET /api/communities
       trips/              # Trip CRUD
-      listings/           # Listing CRUD + search
+      listings/           # POST /api/listings (create); search/detail TBD
       bookings/           # Booking creation
   components/             # Reusable React components
+    # Navbar.tsx          — top navbar for traveller-facing pages; hidden on /auth and provider pages
+    # ProviderSidebar.tsx — left sidebar for all provider pages (/dashboard, /listings/create, etc.)
   lib/                    # Shared utilities (prisma client, auth config, helpers)
 prisma/
   schema.prisma           # Database schema (source of truth for data model)
@@ -29,7 +33,8 @@ prisma/
 docs/                     # Project documentation
   architecture.md         # Detailed architecture and data flow
   database_schema.md      # ERD rationale and Prisma conventions
-  api_conventions.md      # API route patterns and response formats
+  commutrip_erd_v1.dbml   # DBML source file for the ERD diagram
+  api_conventions.md      # API route patterns, response formats, and known gotchas
   ui-prototypes/          # Screenshot references for each page
 ```
 
