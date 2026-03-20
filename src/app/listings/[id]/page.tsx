@@ -42,10 +42,15 @@ const CATEGORY_STYLES: Record<string, string> = {
 
 export default async function ListingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
+  const preselectedSlotId = typeof query.slotId === "string" ? query.slotId : undefined;
+  const preselectedTripId = typeof query.tripId === "string" ? query.tripId : undefined;
 
   let listingId: bigint;
   try {
@@ -318,6 +323,8 @@ export default async function ListingDetailPage({
               isAuthenticated={!!session}
               userRole={session?.user.role}
               trips={trips}
+              defaultSlotId={preselectedSlotId}
+              defaultTripId={preselectedTripId}
             />
           </div>
         </div>

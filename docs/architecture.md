@@ -42,9 +42,13 @@ When a traveller views their trip, the app recommends activities by querying:
 
 1. Activity listings where city/country matches any trip location
 2. Activity slots where date falls within the trip location's arrival/departure window
-3. (Optional) Interest tags that overlap between traveller and listing
+3.  Interest tags that overlap between traveller and listing
 
-This is implemented as a Prisma query with filters, not a separate recommendations table. The ontology models this as a `«relator» Recommendation` but the MVP implements it as a derived query.
+This is implemented as a Prisma query with filters in `src/lib/recommendations.ts`, not a separate recommendations table. The ontology models this as a `«relator» Recommendation` but the MVP implements it as a derived query. Results are sorted by interest tag overlap (descending), then price (ascending). Already-booked listings are excluded.
+
+## Key Feature: Booking Flow
+
+Listing detail (`/listings/[id]`) → BookingPanel selects date/trip/guests → `/bookings/confirm` page shows price breakdown with 10% community support fee → `POST /api/bookings` creates booking (snapshots price, calculates commission, decrements slot capacity) → redirects to trip overview where the activity shows as BOOKED.
 
 ## Key Feature: Communities
 

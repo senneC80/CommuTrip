@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -33,11 +34,13 @@ const navItems = [
 export default function TravellerSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <aside className="flex w-52 flex-shrink-0 flex-col border-r border-gray-100 bg-white px-4 py-6">
       <Link href="/" className="mb-8 px-2 text-lg font-serif text-foreground">
-        {session?.user?.name ?? "Traveller"}
+        {mounted ? (session?.user?.name ?? "Traveller") : "Traveller"}
       </Link>
 
       <nav className="flex flex-col gap-1">

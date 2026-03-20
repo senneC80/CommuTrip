@@ -14,19 +14,29 @@ src/
     (auth)/               # Auth pages — combined /auth page (sign up + log in)
     dashboard/            # Provider dashboard
     trips/                # Trip pages (list, create, detail)
+      [id]/               # Trip detail — day-by-day itinerary with booked + suggested activities
     listings/             # Activity listing pages (browse, create, detail)
+      [id]/               # Listing detail with BookingPanel
     communities/          # Community pages (detail)
-    bookings/             # Booking pages
+    bookings/
+      confirm/            # Booking confirmation page (review details → confirm & pay)
     api/                  # Backend API routes
       auth/               # NextAuth endpoints + POST /api/auth/register
       communities/        # GET /api/communities
-      trips/              # Trip CRUD
-      listings/           # POST /api/listings (create); search/detail TBD
-      bookings/           # Booking creation
+      trips/              # POST /api/trips (create)
+        [id]/recommendations/  # GET — activity matching for a trip
+      listings/           # POST /api/listings (create)
+      bookings/           # POST /api/bookings (create booking, decrement slot capacity)
   components/             # Reusable React components
-    # Navbar.tsx          — top navbar for traveller-facing pages; hidden on /auth and provider pages
-    # ProviderSidebar.tsx — left sidebar for all provider pages (/dashboard, /listings/create, etc.)
-  lib/                    # Shared utilities (prisma client, auth config, helpers)
+    # Navbar.tsx              — top navbar; hidden on /auth, provider, and traveller pages
+    # TravellerSidebar.tsx    — left sidebar for traveller pages (/trips/*)
+    # ProviderSidebar.tsx     — left sidebar for provider pages (/dashboard, /listings/create)
+    # BookingPanel.tsx        — booking widget on listing detail; navigates to /bookings/confirm
+    # ConfirmBookingCard.tsx  — confirmation card with price breakdown + Confirm & Pay
+  lib/                    # Shared utilities
+    # prisma.ts           — singleton Prisma client
+    # auth.ts             — NextAuth config (credentials provider, JWT session)
+    # recommendations.ts  — shared recommendation query (city + date + interest tag matching)
 prisma/
   schema.prisma           # Database schema (source of truth for data model)
   seed.ts                 # Seed data script

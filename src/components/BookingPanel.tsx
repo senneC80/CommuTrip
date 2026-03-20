@@ -22,6 +22,8 @@ export default function BookingPanel({
   isAuthenticated,
   userRole,
   trips,
+  defaultSlotId,
+  defaultTripId,
 }: {
   price: number;
   currency: string;
@@ -30,64 +32,36 @@ export default function BookingPanel({
   isAuthenticated: boolean;
   userRole?: string;
   trips: Trip[];
+  defaultSlotId?: string;
+  defaultTripId?: string;
 }) {
   const router = useRouter();
-  const [selectedSlotId, setSelectedSlotId] = useState(slots[0]?.id ?? "");
-  const [selectedTripId, setSelectedTripId] = useState(trips[0]?.id ?? "");
+  const [selectedSlotId, setSelectedSlotId] = useState(
+    (defaultSlotId && slots.some((s) => s.id === defaultSlotId) ? defaultSlotId : slots[0]?.id) ?? "",
+  );
+  const [selectedTripId, setSelectedTripId] = useState(
+    (defaultTripId && trips.some((t) => t.id === defaultTripId) ? defaultTripId : trips[0]?.id) ?? "",
+  );
   const [guests, setGuests] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
   const isTraveller = isAuthenticated && userRole === "traveller";
   const hasNoTrips = isTraveller && trips.length === 0;
   const hasNoSlots = slots.length === 0;
 
-  async function handleBook() {
+  function handleBook() {
     if (!isAuthenticated) {
       router.push("/auth");
       return;
     }
     if (!isTraveller || hasNoTrips || hasNoSlots) return;
 
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          listingId,
-          slotId: selectedSlotId,
-          numberOfPersons: guests,
-          tripId: selectedTripId,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error || "Failed to book.");
-        return;
-      }
-
-      setSuccess(true);
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (success) {
-    return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm text-center space-y-3">
-        <p className="font-medium text-green-700">Booking confirmed!</p>
-        <Link href="/trips" className="block text-sm text-coral hover:underline">
-          View your trips →
-        </Link>
-      </div>
-    );
+    const params = new URLSearchParams({
+      listingId,
+      slotId: selectedSlotId,
+      tripId: selectedTripId,
+      guests: String(guests),
+    });
+    router.push(`/bookings/confirm?${params.toString()}`);
   }
 
   return (
@@ -175,16 +149,13 @@ export default function BookingPanel({
         </p>
       )}
 
-      {/* Error */}
-      {error && <p className="text-xs text-red-500">{error}</p>}
-
       {/* Book button */}
       <button
         onClick={handleBook}
-        disabled={loading || hasNoTrips || hasNoSlots}
+        disabled={hasNoTrips || hasNoSlots}
         className="w-full rounded-full bg-coral py-3.5 text-sm font-semibold text-white transition-colors hover:bg-coral-hover disabled:opacity-50"
       >
-        {!isAuthenticated ? "Log in to Book" : loading ? "Booking…" : "Book Experience"}
+        {!isAuthenticated ? "Log in to Book" : "Book Experience"}
       </button>
 
       <p className="text-center text-xs text-gray-400">No charge until you confirm.</p>
